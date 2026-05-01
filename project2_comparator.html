@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash Comparator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf8;
+    --white: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --light: #f3f4f6;
+    --border: #e5e7eb;
+    --chain: #059669;
+    --linear: #7c3aed;
+    --quad: #dc2626;
+    --double: #0284c7;
+    --h1: #d97706;
+    --h2: #db2777;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'DM Sans', sans-serif; min-height:100vh; }
+
+  .page { max-width:1000px; margin:0 auto; padding:3rem 2rem; }
+
+  header { margin-bottom:3rem; border-bottom:2px solid var(--ink); padding-bottom:1.5rem; }
+  header .eyebrow { font-family:'DM Mono', monospace; font-size:0.72rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem; }
+  header h1 { font-family:'DM Serif Display', serif; font-size:clamp(2.2rem,5vw,3.8rem); line-height:1.05; color:var(--ink); }
+  header h1 em { font-style:italic; color:var(--muted); }
+  header p { font-size:0.95rem; color:var(--muted); margin-top:0.75rem; max-width:500px; line-height:1.6; }
+
+  .input-row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:1rem; margin-bottom:2.5rem; align-items:end; }
+  @media(max-width:700px) { .input-row { grid-template-columns:1fr 1fr; } }
+  .field label { display:block; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .field input {
+    width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:8px;
+    font-family:'DM Mono',monospace; font-size:0.9rem; background:var(--white);
+    outline:none; transition:border-color 0.2s; color:var(--ink);
+  }
+  .field input:focus { border-color:var(--ink); }
+  .run-btn {
+    padding:11px 28px; background:var(--ink); color:white; border:none; border-radius:8px;
+    font-family:'DM Mono',monospace; font-size:0.8rem; font-weight:500; cursor:pointer;
+    letter-spacing:1px; text-transform:uppercase; transition:opacity 0.2s; white-space:nowrap;
+  }
+  .run-btn:hover { opacity:0.8; }
+
+  .results { display:none; }
+  .results.show { display:block; }
+
+  .section-title { font-family:'DM Serif Display',serif; font-size:1.5rem; margin-bottom:1.2rem; }
+  .section-title span { font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); display:block; margin-bottom:4px; letter-spacing:1px; text-transform:uppercase; }
+
+  /* Cards */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:1rem; margin-bottom:2.5rem; }
+  .card { background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:1.2rem; position:relative; overflow:hidden; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+  .card.chain::before { background:var(--chain); }
+  .card.linear::before { background:var(--linear); }
+  .card.quad::before { background:var(--quad); }
+  .card.double::before { background:var(--double); }
+  .card-method { font-family:'DM Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; }
+  .card.chain .card-method { color:var(--chain); }
+  .card.linear .card-method { color:var(--linear); }
+  .card.quad .card-method { color:var(--quad); }
+  .card.double .card-method { color:var(--double); }
+  .card-num { font-family:'DM Serif Display',serif; font-size:2.8rem; line-height:1; }
+  .card-label { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+  /* Bar chart */
+  .chart-area { background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:2rem; margin-bottom:2.5rem; }
+  .chart-row { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+  .chart-label { font-family:'DM Mono',monospace; font-size:0.72rem; width:160px; flex-shrink:0; }
+  .bar-wrap { flex:1; background:var(--light); border-radius:4px; height:28px; overflow:hidden; }
+  .bar { height:100%; border-radius:4px; display:flex; align-items:center; padding:0 10px; transition:width 1s cubic-bezier(.4,0,.2,1); width:0; }
+  .bar span { font-family:'DM Mono',monospace; font-size:0.7rem; color:white; font-weight:500; white-space:nowrap; }
+
+  /* Table */
+  .compare-table { width:100%; border-collapse:collapse; background:var(--white); border:1.5px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:2.5rem; }
+  .compare-table th { background:var(--ink); color:white; font-family:'DM Mono',monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; padding:12px 16px; text-align:left; }
+  .compare-table td { padding:11px 16px; border-bottom:1px solid var(--border); font-size:0.88rem; }
+  .compare-table tr:last-child td { border-bottom:none; }
+  .compare-table tr:hover td { background:var(--light); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-family:'DM Mono',monospace; font-size:0.68rem; font-weight:500; }
+  .badge.best { background:#d1fae5; color:#065f46; }
+  .badge.worst { background:#fee2e2; color:#991b1b; }
+
+  /* Keys preview */
+  .keys-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2rem; }
+  .key-pill { background:var(--white); border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); }
+  .key-pill:hover { border-color:var(--ink); color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Algorithm Analysis</div>
+    <h1>Hash Method<br><em>Comparator</em></h1>
+    <p>Enter your seed to generate your personal dataset, then compare all four collision handling methods side by side.</p>
+  </header>
+
+  <div class="input-row">
+    <div class="field">
+      <label>Your Seed</label>
+      <input type="number" id="seedInput" value="137" min="1">
+    </div>
+    <div class="field">
+      <label>Keys to Generate</label>
+      <input type="number" id="nKeys" value="30" min="5" max="100">
+    </div>
+    <div class="field">
+      <label>Table Size (m)</label>
+      <input type="number" id="tableM" value="41" min="7" max="200">
+    </div>
+    <button class="run-btn" onclick="runComparison()">Compare</button>
+  </div>
+
+  <div class="results" id="results">
+    <div style="margin-bottom:2rem;">
+      <div class="section-title"><span>Generated Dataset</span>Your 30 Keys</div>
+      <div class="keys-grid" id="keysGrid"></div>
+    </div>
+
+    <div class="section-title"><span>Summary</span>Collision Count</div>
+    <div class="card-grid" id="cardGrid"></div>
+
+    <div class="section-title"><span>Visual</span>Bar Chart Comparison</div>
+    <div class="chart-area" id="chartArea"></div>
+
+    <div class="section-title"><span>Full</span>Detailed Comparison</div>
+    <table class="compare-table" id="compareTable">
+      <thead>
+        <tr>
+          <th>Method</th><th>Hash Fn</th><th>Collisions</th><th>Avg Steps</th><th>Load Factor</th><th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="section-title"><span>Insight</span>What does this mean?</div>
+    <div id="insight" style="background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.5rem;line-height:1.7;font-size:0.92rem;color:#374151;"></div>
+  </div>
+</div>
+
+<script>
+function generateKeys(seed, n) {
+  const keys = [];
+  for (let i = 1; i <= n; i++) {
+    keys.push((seed * i + i * i) % 997);
+  }
+  return keys;
+}
+
+function h1(k, m) { return k % m; }
+function h2(k, m) { return Math.floor((k * k) / 10) % m; }
+
+function simulateChaining(keys, hashFn, m) {
+  const table = Array.from({length:m}, ()=>[]);
+  let coll = 0;
+  for (const k of keys) {
+    const idx = hashFn(k, m);
+    if (table[idx].length > 0) coll++;
+    table[idx].push(k);
+  }
+  return { collisions: coll, avgSteps: 1 + coll / keys.length };
+}
+
+function simulateLinear(keys, hashFn, m) {
+  const table = new Array(m).fill(null);
+  let coll = 0, steps = 0;
+  for (const k of keys) {
+    let pos = hashFn(k, m), i = 0, s = 1;
+    while (table[pos] !== null && i < m) { coll++; i++; pos = (hashFn(k,m)+i)%m; s++; }
+    if (i < m) table[pos] = k;
+    steps += s;
+  }
+  return { collisions: coll, avgSteps: steps / keys.length };
+}
+
+function simulateQuadratic(keys, hashFn, m) {
+  const table = new Array(m).fill(null);
+  let coll = 0, steps = 0;
+  for (const k of keys) {
+    let pos = hashFn(k, m), i = 0, s = 1;
+    while (table[pos] !== null && i < m) { coll++; i++; pos = (hashFn(k,m)+i*i)%m; s++; }
+    if (i < m) table[pos] = k;
+    steps += s;
+  }
+  return { collisions: coll, avgSteps: steps / keys.length };
+}
+
+function simulateDouble(keys, hashFn, m) {
+  const R = 37;
+  const table = new Array(m).fill(null);
+  let coll = 0, steps = 0;
+  for (const k of keys) {
+    const base = hashFn(k, m);
+    const step = R - (k % R) || 1;
+    let pos = base, i = 0, s = 1;
+    while (table[pos] !== null && i < m) { coll++; i++; pos = (base + i*step) % m; s++; }
+    if (i < m) table[pos] = k;
+    steps += s;
+  }
+  return { collisions: coll, avgSteps: steps / keys.length };
+}
+
+function runComparison() {
+  const seed = parseInt(document.getElementById('seedInput').value) || 137;
+  const n = parseInt(document.getElementById('nKeys').value) || 30;
+  const m = parseInt(document.getElementById('tableM').value) || 41;
+  const keys = generateKeys(seed, n);
+
+  // Show keys
+  const kg = document.getElementById('keysGrid');
+  kg.innerHTML = keys.map(k => `<div class="key-pill">K${k}</div>`).join('');
+
+  const methods = [
+    { name:'Separate Chaining', cls:'chain', fn: simulateChaining, h:'H1', color:'var(--chain)', res: simulateChaining(keys, h1, m) },
+    { name:'Separate Chaining', cls:'chain', fn: simulateChaining, h:'H2', color:'var(--chain)', res: simulateChaining(keys, h2, m) },
+    { name:'Linear Probing',    cls:'linear', h:'H1', color:'var(--linear)', res: simulateLinear(keys, h1, m) },
+    { name:'Linear Probing',    cls:'linear', h:'H2', color:'var(--linear)', res: simulateLinear(keys, h2, m) },
+    { name:'Quadratic Probing', cls:'quad',   h:'H1', color:'var(--quad)', res: simulateQuadratic(keys, h1, m) },
+    { name:'Quadratic Probing', cls:'quad',   h:'H2', color:'var(--quad)', res: simulateQuadratic(keys, h2, m) },
+    { name:'Double Hashing',    cls:'double', h:'H1', color:'var(--double)', res: simulateDouble(keys, h1, m) },
+    { name:'Double Hashing',    cls:'double', h:'H2', color:'var(--double)', res: simulateDouble(keys, h2, m) },
+  ];
+
+  const maxColl = Math.max(...methods.map(m => m.res.collisions), 1);
+  const minColl = Math.min(...methods.map(m => m.res.collisions));
+  const loadFactor = (n / m).toFixed(2);
+
+  // Cards (4 best unique methods)
+  const uniq = ['chain','linear','quad','double'].map(c => {
+    const ms = methods.filter(mm => mm.cls === c);
+    const best = ms.reduce((a,b) => a.res.collisions <= b.res.collisions ? a : b);
+    return {...best};
+  });
+  document.getElementById('cardGrid').innerHTML = uniq.map(u => `
+    <div class="card ${u.cls}">
+      <div class="card-method">${u.name} (${u.h})</div>
+      <div class="card-num">${u.res.collisions}</div>
+      <div class="card-label">collisions (best of H1/H2)</div>
+    </div>
+  `).join('');
+
+  // Bar chart
+  document.getElementById('chartArea').innerHTML = methods.map(mm => `
+    <div class="chart-row">
+      <div class="chart-label">${mm.name.split(' ').slice(-1)[0]} + ${mm.h}</div>
+      <div class="bar-wrap">
+        <div class="bar" style="background:${mm.color};width:0" data-w="${Math.max(4, Math.round(mm.res.collisions/maxColl*100))}%">
+          <span>${mm.res.collisions} coll</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  setTimeout(()=>{
+    document.querySelectorAll('.bar').forEach(b => b.style.width = b.dataset.w);
+  }, 100);
+
+  // Table
+  document.getElementById('tableBody').innerHTML = methods.map(mm => `
+    <tr>
+      <td><strong>${mm.name}</strong></td>
+      <td><span style="font-family:'DM Mono',monospace">${mm.h}</span></td>
+      <td><strong>${mm.res.collisions}</strong></td>
+      <td>${mm.res.avgSteps.toFixed(2)}</td>
+      <td>${loadFactor}</td>
+      <td>${mm.res.collisions === minColl ? '<span class="badge best">Best</span>' : mm.res.collisions === maxColl ? '<span class="badge worst">Most</span>' : '—'}</td>
+    </tr>
+  `).join('');
+
+  // Insight
+  const winner = methods.reduce((a,b) => a.res.collisions <= b.res.collisions ? a : b);
+  document.getElementById('insight').innerHTML = `
+    <strong>With seed ${seed}, table size ${m}, and ${n} keys:</strong><br><br>
+    The best performing method was <strong>${winner.name} with ${winner.h}</strong> — only ${winner.res.collisions} collisions.
+    The load factor is <strong>α = ${loadFactor}</strong>, which means the table is ${Math.round(loadFactor*100)}% full.
+    <br><br>
+    <strong>Why do some methods have more collisions?</strong> Linear probing creates "clusters" — when keys bunch together, every new key has to search further. Double hashing and separate chaining avoid this by spreading keys more evenly.
+    <br><br>
+    <strong>Real-world insight:</strong> Python's dictionary uses open addressing. Java's HashMap uses chaining. Both resize when load factor exceeds 0.75 to keep performance fast.
+  `;
+
+  document.getElementById('results').classList.add('show');
+}
+
+// Auto-run on load
+runComparison();
+</script>
+</body>
+</html>
